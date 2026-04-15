@@ -481,7 +481,7 @@ function renderCatalog() {
         <label>Nazwa usługi</label>
         <input type="text" value="${escHtml(svc.name)}"
                oninput="services[${i}].name=this.value; syncServiceSelects()">
-      </div>
+      </div><br/>
       <div>
         <label>Jednostka</label>
         <select onchange="services[${i}].unit=this.value; syncUnitLabels()">
@@ -623,7 +623,7 @@ function renderServiceRow(roomId, row) {
       <select class="service-select" onchange="updateRow(${roomId},${row.id},'service',this.value); prefillPrice(${roomId},${row.id},this.value)">
         ${options}
       </select>
-    </div>
+    </div><br/>
     <div>
       <label id="qty-label-${row.id}">Ilość (${rowUnit})</label>
       <input type="number" min="0" step="0.01" value="${row.qty ?? 0}"
@@ -791,7 +791,7 @@ function generatePDF() {
       },
       {
         text: 'Szacowana wycena kosztów usługi budowlanej',
-        fontSize: 16, bold: true, color: '#ffffff',
+        fontSize: 18, bold: true, color: '#ffffff',
         margin: [6, -46, 0, 2],
       },
       {
@@ -820,7 +820,7 @@ function generatePDF() {
             [
               { text: '', colSpan: 4, border: [false, true, false, false], fillColor: '#f1f5f9' },
               {}, {}, {},
-              { text: 'SUMA KOŃCOWA', bold: true, fontSize: 10, color: DARK,
+              { text: 'SUMA', bold: true, fontSize: 10, color: DARK,
                 alignment: 'right', border: [false, true, false, false], fillColor: '#f1f5f9' },
               { text: 'PLN ' + fmt(grandTotal), bold: true, fontSize: 10, color: DARK,
                 alignment: 'right', border: [false, true, false, false], fillColor: '#f1f5f9' },
