@@ -96,14 +96,18 @@
 
     .catalog-item {
       display: grid;
-      grid-template-columns: 1fr 130px 130px auto;
-      align-items: center;
-      gap: 10px;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 8px 10px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 10px 14px;
     }
+    .catalog-item .catalog-name  { grid-column: 1; grid-row: 1; }
+    .catalog-item .catalog-sub   { grid-column: 1; grid-row: 2; display: flex; gap: 10px; }
+    .catalog-item .catalog-sub > div { flex: 1; }
+    .catalog-item > .btn-danger  { grid-column: 2; grid-row: 1; align-self: start; }
     .catalog-item input[type="text"] { font-weight: 600; }
 
     /* ─── Rooms ───────────────────────────────────────────────────── */
@@ -136,14 +140,18 @@
     /* ─── Service Rows ────────────────────────────────────────────── */
     .service-row {
       display: grid;
-      grid-template-columns: 180px 1fr 1fr auto;
-      align-items: center;
-      gap: 10px;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 8px 10px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 10px 14px;
     }
+    .service-row .srow-service { grid-column: 1; grid-row: 1; }
+    .service-row .srow-sub     { grid-column: 1; grid-row: 2; display: flex; gap: 10px; }
+    .service-row .srow-sub > div { flex: 1; }
+    .service-row > .btn-danger { grid-column: 2; grid-row: 1; align-self: start; }
     .service-row .row-price {
       font-weight: 700;
       color: #0f3460;
@@ -335,9 +343,7 @@
 
     /* ─── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 640px) {
-      .service-row { grid-template-columns: 1fr 1fr; }
-      .service-row .btn-danger { grid-column: span 2; justify-self: end; }
-      .catalog-item { grid-template-columns: 1fr 1fr; }
+      /* service-row and catalog-item already stack on small screens */
     }
   </style>
 </head>
@@ -477,26 +483,28 @@ function renderCatalog() {
     const div = document.createElement('div');
     div.className = 'catalog-item';
     div.innerHTML = `
-      <div>
+      <div class="catalog-name">
         <label>Nazwa usługi</label>
         <input type="text" value="${escHtml(svc.name)}"
                oninput="services[${i}].name=this.value; syncServiceSelects()">
-      </div><br/>
-      <div>
-        <label>Jednostka</label>
-        <select onchange="services[${i}].unit=this.value; syncUnitLabels()">
-          ${unitOptions}
-        </select>
-      </div>
-      <div>
-        <label>Domyślna cena / jed.</label>
-        <div class="input-wrap">
-          <span>PLN</span>
-          <input type="number" min="0" step="0.01" value="${svc.defaultPrice}"
-                 oninput="services[${i}].defaultPrice=parseFloat(this.value)||0">
-        </div>
       </div>
       <button class="btn btn-danger" onclick="removeCatalogItem(${i})">✕</button>
+      <div class="catalog-sub">
+        <div>
+          <label>Jednostka</label>
+          <select onchange="services[${i}].unit=this.value; syncUnitLabels()">
+            ${unitOptions}
+          </select>
+        </div>
+        <div>
+          <label>Domyślna cena / jed.</label>
+          <div class="input-wrap">
+            <span>PLN</span>
+            <input type="number" min="0" step="0.01" value="${svc.defaultPrice}"
+                   oninput="services[${i}].defaultPrice=parseFloat(this.value)||0">
+          </div>
+        </div>
+      </div>
     `;
     list.appendChild(div);
   });
@@ -618,27 +626,29 @@ function renderServiceRow(roomId, row) {
 
   const rowUnit = row.unit || 'm²';
   div.innerHTML = `
-    <div>
+    <div class="srow-service">
       <label>Usługa</label>
       <select class="service-select" onchange="updateRow(${roomId},${row.id},'service',this.value); prefillPrice(${roomId},${row.id},this.value)">
         ${options}
       </select>
-    </div><br/>
-    <div>
-      <label id="qty-label-${row.id}">Ilość (${rowUnit})</label>
-      <input type="number" min="0" step="0.01" value="${row.qty ?? 0}"
-             oninput="updateRow(${roomId},${row.id},'qty',parseFloat(this.value)||0)">
-    </div>
-    <div>
-      <label id="price-label-${row.id}">Cena / ${rowUnit}</label>
-      <div class="input-wrap">
-        <span>PLN</span>
-        <input type="number" min="0" step="0.01" value="${row.price}"
-               id="price-${row.id}"
-               oninput="updateRow(${roomId},${row.id},'price',parseFloat(this.value)||0)">
-      </div>
     </div>
     <button class="btn btn-danger" onclick="removeServiceRow(${roomId},${row.id})">✕</button>
+    <div class="srow-sub">
+      <div>
+        <label id="qty-label-${row.id}">Ilość (${rowUnit})</label>
+        <input type="number" min="0" step="0.01" value="${row.qty ?? 0}"
+               oninput="updateRow(${roomId},${row.id},'qty',parseFloat(this.value)||0)">
+      </div>
+      <div>
+        <label id="price-label-${row.id}">Cena / ${rowUnit}</label>
+        <div class="input-wrap">
+          <span>PLN</span>
+          <input type="number" min="0" step="0.01" value="${row.price}"
+                 id="price-${row.id}"
+                 oninput="updateRow(${roomId},${row.id},'price',parseFloat(this.value)||0)">
+        </div>
+      </div>
+    </div>
   `;
   body.appendChild(div);
 }
