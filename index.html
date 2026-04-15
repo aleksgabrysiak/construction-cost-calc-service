@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulator Kosztów Usług Remontowo-Wykończeniowych</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ─── Header ───────────────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    header .icon { font-size: 2.4rem; }
+    header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+    header p  { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
+
+    /* ─── Layout ───────────────────────────────────────────────────── */
+    main {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: grid;
+      gap: 24px;
+    }
+
+    /* ─── Cards ────────────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .card-header {
+      background: #0f3460;
+      color: #fff;
+      padding: 14px 20px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-body { padding: 20px; }
+
+    /* ─── Section label ────────────────────────────────────────────── */
+    .section-note {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* ─── Buttons ──────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover  { filter: brightness(1.1); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary   { background: #0f3460; color: #fff; }
+    .btn-success   { background: #16a34a; color: #fff; }
+    .btn-danger    { background: #dc2626; color: #fff; padding: 6px 12px; font-size: 0.8rem; }
+    .btn-secondary { background: #e2e8f0; color: #334155; }
+    .btn-pdf       { background: linear-gradient(135deg, #e63946, #c1121f); color: #fff; font-size: 1rem; padding: 12px 28px; }
+
+    /* ─── Service Catalog ─────────────────────────────────────────── */
+    #catalog-list { display: grid; gap: 10px; }
+
+    .catalog-item {
+      display: grid;
+      grid-template-columns: 1fr 130px 130px auto;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .catalog-item input[type="text"] { font-weight: 600; }
+
+    /* ─── Rooms ───────────────────────────────────────────────────── */
+    #rooms-container { display: grid; gap: 16px; }
+
+    .room-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .room-header {
+      background: #f1f5f9;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .room-header input[type="text"] {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #0f3460;
+    }
+    .room-body { padding: 16px; display: grid; gap: 10px; }
+
+    /* ─── Service Rows ────────────────────────────────────────────── */
+    .service-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 1fr auto;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .service-row .row-price {
+      font-weight: 700;
+      color: #0f3460;
+      text-align: right;
+    }
+
+    /* ─── Inputs ──────────────────────────────────────────────────── */
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-family: inherit;
+      color: #1a1a2e;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #0f3460;
+    }
+    input[type="number"] { text-align: right; }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      display: block;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ─── Summary Table ──────────────────────────────────────────── */
+    #summary-table-wrapper { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead th {
+      background: #0f3460;
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #e2e8f0; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody td { padding: 9px 14px; }
+    tfoot td {
+      padding: 11px 14px;
+      font-weight: 700;
+      background: #f1f5f9;
+      border-top: 2px solid #0f3460;
+    }
+    .text-right { text-align: right; }
+    .total-row td { font-size: 1rem; color: #0f3460; }
+
+    /* ─── Actions ─────────────────────────────────────────────────── */
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 20px;
+    }
+
+    /* ─── Empty state ──────────────────────────────────────────────── */
+    .empty { color: #94a3b8; font-size: 0.875rem; padding: 8px 0; }
+
+    /* ─── Currency symbol ─────────────────────────────────────────── */
+    .input-wrap { position: relative; }
+    .input-wrap span {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+    .input-wrap input { padding-left: 22px; }
+
+    /* ─── Client card ─────────────────────────────────────────────── */
+    .client-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .client-card label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0f3460;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      margin-bottom: 0;
+    }
+    .client-card input {
+      flex: 1;
+      min-width: 220px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 14px;
+      color: #0f3460;
+      transition: border-color 0.15s;
+    }
+    .client-card input:focus { border-color: #0f3460; outline: none; }
+    .client-card input::placeholder { font-weight: 400; color: #94a3b8; }
+
+    /* ─── Save indicator ──────────────────────────────────────────── */
+    .save-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      justify-content: flex-end;
+    }
+    .save-indicator {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      transition: color 0.3s;
+    }
+    .save-indicator.saved   { color: #16a34a; }
+    .save-indicator.unsaved { color: #f59e0b; }
+    .btn-save { background: #0f3460; color: #fff; }
+
+    /* ─── Collapsible cards ───────────────────────────────────────── */
+    .card-header {
+      cursor: pointer;
+      user-select: none;
+    }
+    .card-header .chevron {
+      margin-left: auto;
+      font-size: 0.85rem;
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .card-header.collapsed .chevron { transform: rotate(-90deg); }
+
+    .card-collapsible {
+      overflow: hidden;
+      max-height: 4000px;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+      opacity: 1;
+    }
+    .card-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Collapsible room body ────────────────────────────────────── */
+    .room-header { cursor: pointer; user-select: none; }
+    .room-header .room-chevron {
+      font-size: 0.8rem;
+      transition: transform 0.22s ease;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+    .room-header.collapsed .room-chevron { transform: rotate(-90deg); }
+
+    .room-collapsible {
+      overflow: hidden;
+      max-height: 3000px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+      opacity: 1;
+    }
+    .room-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .service-row { grid-template-columns: 1fr 1fr; }
+      .service-row .btn-danger { grid-column: span 2; justify-self: end; }
+      .catalog-item { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🏗️</div>
+  <div>
+    <h1>Kalkulator Kosztów Usług Remontowo-Wykończeniowych</h1>
+    <p>Szacowanie kosztów remontu mieszkania — generowanie profesjonalnych ofert PDF</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  CLIENT NAME                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="client-card">
+    <label for="client-name">👤 Nazwa klienta</label>
+    <input type="text" id="client-name" placeholder="Wpisz imię i nazwisko lub nazwę firmy…"
+           oninput="saveClientName(this.value)">
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  STEP 1 — SERVICE CATALOG  (configure before publishing)      -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="card" id="catalog-card">
+    <div class="card-header" onclick="toggleCard('catalog-body')">⚙️ 1 — Katalog usług <span style="font-weight:400;opacity:.7;font-size:.8rem;margin-left:8px;"></span><span class="chevron">▼</span></div>
+    <div class="card-collapsible" id="catalog-body">
+      <div class="card-body">
+        <p class="section-note">
+          Dodaj, zmień nazwę lub usuń usługi, które oferujesz. Ceny wprowadzone tutaj są tylko <strong>domyślnymi wskazówkami</strong> — użytkownik końcowy może je nadpisać dla każdego pomieszczenia.
+        </p>
+        <div id="catalog-list"></div>
+        <br>
+        <button class="btn btn-primary" onclick="addCatalogItem()">➕ Dodaj usługę</button>
+      </div>
+      <div class="save-bar">
+        <span class="save-indicator" id="catalog-save-indicator"></span>
+        <button class="btn btn-save" onclick="saveCatalog()">💾 Zapisz katalog</button>
+        <button class="btn btn-danger" style="font-size:.8rem" onclick="clearCatalog()">🗑 Resetuj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  STEP 2 — APARTMENT DETAILS                                    -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard('rooms-body')">🏠 2 — Pomieszczenia<span class="chevron">▼</span></div>
+    <div class="card-collapsible" id="rooms-body">
+      <div class="card-body">
+        <p class="section-note">
+          Dodaj każde pomieszczenie (kuchnia, łazienka, sypialnia…). Następnie w każdym pomieszczeniu dodaj potrzebne usługi i wprowadź powierzchnię + swoją cenę.
+        </p>
+        <div id="rooms-container"></div>
+        <br>
+        <button class="btn btn-success" onclick="addRoom()">➕ Dodaj pomieszczenie</button>
+      </div>
+      <div class="save-bar">
+        <span class="save-indicator" id="rooms-save-indicator"></span>
+        <button class="btn btn-save" onclick="saveRooms()">💾 Zapisz pomieszczenia</button>
+        <button class="btn btn-danger" style="font-size:.8rem" onclick="clearRooms()">🗑 Resetuj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!--  STEP 3 — SUMMARY & PDF                                        -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard('summary-collapse')">📋 3 — Podsumowanie &amp; eksport do PDF<span class="chevron">▼</span></div>
+    <div class="card-collapsible" id="summary-collapse">
+      <div id="summary-table-wrapper">
+        <table id="summary-table">
+          <thead>
+            <tr>
+              <th>Usługa</th>
+              <th>Pomieszczenie</th>
+              <th class="text-right">Ilość</th>
+              <th>Jednostka</th>
+              <th class="text-right">Cena / jed.</th>
+              <th class="text-right">Łącznie</th>
+            </tr>
+          </thead>
+          <tbody id="summary-body"></tbody>
+          <tfoot id="summary-foot"></tfoot>
+        </table>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="refreshSummary()">🔄 Odśwież</button>
+        <button class="btn btn-pdf" onclick="generatePDF()">📄 Pobierz PDF</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  DEFAULT SERVICE CATALOG
+//  ← Edit this array before publishing to GitHub Pages ←
+// ══════════════════════════════════════════════════════════════════════
+const DEFAULT_SERVICES = [
+  { name: "Malowanie — ściany",       unit: "m²", defaultPrice: 50 },
+  { name: "Malowanie — sufity",     unit: "m²", defaultPrice: 50 },
+  { name: "Panele - usuwanie",           unit: "m²", defaultPrice: 20 },
+  { name: "Panele - montaż",             unit: "mb", defaultPrice: 50 },
+  { name: "Płytki ceramiczne - montaż",          unit: "m²", defaultPrice: 45 },
+  { name: "Tynkowanie",             unit: "m²", defaultPrice: 30 },
+  { name: "Gładzie",                unit: "m²", defaultPrice: 40 },
+  { name: "Montaż drzwi",           unit: "szt.", defaultPrice: 150 },
+  { name: "Montaż okien",           unit: "szt.", defaultPrice: 200 },
+  { name: "Instalacja elektryczna",      unit: "mb", defaultPrice: 60 }
+];
+
+// ── State ──────────────────────────────────────────────────────────────
+let services  = JSON.parse(JSON.stringify(DEFAULT_SERVICES));   // deep copy
+let rooms     = [];
+let roomIdSeq = 0;
+let svcIdSeq  = 0;
+let rowIdSeq  = 0;
+
+// ══════════════════════════════════════════════════════════════════════
+//  CATALOG
+// ══════════════════════════════════════════════════════════════════════
+const UNITS = ['m²', 'mb', 'szt.', 'godz.', 'kpl.'];
+
+function renderCatalog() {
+  const list = document.getElementById('catalog-list');
+  list.innerHTML = '';
+  services.forEach((svc, i) => {
+    const unitOptions = UNITS.map(u =>
+      `<option value="${u}" ${svc.unit === u ? 'selected' : ''}>${u}</option>`
+    ).join('');
+    const div = document.createElement('div');
+    div.className = 'catalog-item';
+    div.innerHTML = `
+      <div>
+        <label>Nazwa usługi</label>
+        <input type="text" value="${escHtml(svc.name)}"
+               oninput="services[${i}].name=this.value; syncServiceSelects()">
+      </div>
+      <div>
+        <label>Jednostka</label>
+        <select onchange="services[${i}].unit=this.value; syncUnitLabels()">
+          ${unitOptions}
+        </select>
+      </div>
+      <div>
+        <label>Domyślna cena / jed.</label>
+        <div class="input-wrap">
+          <span>PLN</span>
+          <input type="number" min="0" step="0.01" value="${svc.defaultPrice}"
+                 oninput="services[${i}].defaultPrice=parseFloat(this.value)||0">
+        </div>
+      </div>
+      <button class="btn btn-danger" onclick="removeCatalogItem(${i})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function addCatalogItem() {
+  services.push({ name: "Nowa usługa", unit: "m²", defaultPrice: 0 });
+  renderCatalog();
+  syncServiceSelects();
+}
+
+function removeCatalogItem(i) {
+  services.splice(i, 1);
+  renderCatalog();
+  syncServiceSelects();
+}
+
+function syncServiceSelects() {
+  // Update all existing selects in rooms
+  document.querySelectorAll('.service-select').forEach(sel => {
+    const current = sel.value;
+    sel.innerHTML = services.map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+    sel.value = current; // try to keep selection
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ROOMS
+// ══════════════════════════════════════════════════════════════════════
+function addRoom() {
+  const id = ++roomIdSeq;
+  rooms.push({ id, name: `Pomieszczenie ${id}`, rows: [] });
+  renderRooms();
+}
+
+function removeRoom(id) {
+  rooms = rooms.filter(r => r.id !== id);
+  renderRooms();
+  refreshSummary();
+}
+
+function renderRooms() {
+  const container = document.getElementById('rooms-container');
+  container.innerHTML = '';
+  if (rooms.length === 0) {
+    container.innerHTML = '<p class="empty">Brak pomieszczeń. Kliknij "Dodaj pomieszczenie", aby rozpocząć.</p>';
+    return;
+  }
+  rooms.forEach(room => {
+    const div = document.createElement('div');
+    div.className = 'room-card';
+    div.id = `room-${room.id}`;
+    div.innerHTML = `
+      <div class="room-header" onclick="toggleRoom(${room.id}, event)">
+        <span>🏠</span>
+        <input type="text" value="${escHtml(room.name)}"
+               placeholder="Nazwa pomieszczenia (np. Kuchnia)"
+               oninput="updateRoomName(${room.id}, this.value)"
+               onclick="event.stopPropagation()">
+        <span class="room-chevron">▼</span>
+        <button class="btn btn-danger" onclick="event.stopPropagation(); removeRoom(${room.id})">✕ Usuń</button>
+      </div>
+      <div class="room-collapsible" id="room-collapse-${room.id}">
+        <div class="room-body" id="room-body-${room.id}">
+          ${room.rows.length === 0 ? '<p class="empty">Nie dodano jeszcze żadnych usług.</p>' : ''}
+        </div>
+        <div style="padding:0 16px 16px">
+          <button class="btn btn-primary" onclick="addServiceRow(${room.id})">➕ Dodaj usługę</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    // render existing rows
+    room.rows.forEach(row => renderServiceRow(room.id, row));
+  });
+}
+
+function updateRoomName(id, name) {
+  const room = rooms.find(r => r.id === id);
+  if (room) room.name = name;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SERVICE ROWS (inside a room)
+// ══════════════════════════════════════════════════════════════════════
+function addServiceRow(roomId) {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return;
+  const rowId = ++rowIdSeq;
+  const defaultSvc = services[0] || { name: '', defaultPrice: 0 };
+  const row = {
+    id: rowId,
+    service: defaultSvc.name,
+    unit: defaultSvc.unit || 'm²',
+    qty: 0,
+    price: defaultSvc.defaultPrice,
+  };
+  room.rows.push(row);
+
+  // clear empty message
+  const body = document.getElementById(`room-body-${roomId}`);
+  const empty = body.querySelector('.empty');
+  if (empty) empty.remove();
+
+  renderServiceRow(roomId, row);
+  refreshSummary();
+}
+
+function renderServiceRow(roomId, row) {
+  const body = document.getElementById(`room-body-${roomId}`);
+
+  const div = document.createElement('div');
+  div.className = 'service-row';
+  div.id = `srow-${row.id}`;
+
+  const options = services.map(s =>
+    `<option value="${escHtml(s.name)}" ${s.name === row.service ? 'selected' : ''}>${escHtml(s.name)}</option>`
+  ).join('');
+
+  const rowUnit = row.unit || 'm²';
+  div.innerHTML = `
+    <div>
+      <label>Usługa</label>
+      <select class="service-select" onchange="updateRow(${roomId},${row.id},'service',this.value); prefillPrice(${roomId},${row.id},this.value)">
+        ${options}
+      </select>
+    </div>
+    <div>
+      <label id="qty-label-${row.id}">Ilość (${rowUnit})</label>
+      <input type="number" min="0" step="0.01" value="${row.qty ?? 0}"
+             oninput="updateRow(${roomId},${row.id},'qty',parseFloat(this.value)||0)">
+    </div>
+    <div>
+      <label id="price-label-${row.id}">Cena / ${rowUnit}</label>
+      <div class="input-wrap">
+        <span>PLN</span>
+        <input type="number" min="0" step="0.01" value="${row.price}"
+               id="price-${row.id}"
+               oninput="updateRow(${roomId},${row.id},'price',parseFloat(this.value)||0)">
+      </div>
+    </div>
+    <button class="btn btn-danger" onclick="removeServiceRow(${roomId},${row.id})">✕</button>
+  `;
+  body.appendChild(div);
+}
+
+function prefillPrice(roomId, rowId, serviceName) {
+  const svc = services.find(s => s.name === serviceName);
+  if (!svc) return;
+  const input = document.getElementById(`price-${rowId}`);
+  if (input) {
+    input.value = svc.defaultPrice;
+    updateRow(roomId, rowId, 'price', svc.defaultPrice);
+  }
+  const unit = svc.unit || 'm²';
+  updateRow(roomId, rowId, 'unit', unit);
+  const qtyLabel   = document.getElementById(`qty-label-${rowId}`);
+  const priceLabel = document.getElementById(`price-label-${rowId}`);
+  if (qtyLabel)   qtyLabel.textContent   = `Ilość (${unit})`;
+  if (priceLabel) priceLabel.textContent = `Cena / ${unit}`;
+}
+
+function syncUnitLabels() {
+  rooms.forEach(room => {
+    room.rows.forEach(row => {
+      const svc = services.find(s => s.name === row.service);
+      if (!svc) return;
+      const unit = svc.unit || 'm²';
+      row.unit = unit;
+      const qtyLabel   = document.getElementById(`qty-label-${row.id}`);
+      const priceLabel = document.getElementById(`price-label-${row.id}`);
+      if (qtyLabel)   qtyLabel.textContent   = `Ilość (${unit})`;
+      if (priceLabel) priceLabel.textContent = `Cena / ${unit}`;
+    });
+  });
+  refreshSummary();
+}
+
+function updateRow(roomId, rowId, field, value) {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return;
+  const row = room.rows.find(r => r.id === rowId);
+  if (row) {
+    row[field] = value;
+    refreshSummary();
+  }
+}
+
+function removeServiceRow(roomId, rowId) {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room) return;
+  room.rows = room.rows.filter(r => r.id !== rowId);
+  const el = document.getElementById(`srow-${rowId}`);
+  if (el) el.remove();
+  if (room.rows.length === 0) {
+    const body = document.getElementById(`room-body-${roomId}`); 
+    if (body && !body.querySelector('.empty')) {
+      body.innerHTML = '<p class="empty">Nie dodano jeszcze żadnych usług.</p>';
+    }
+  }
+  refreshSummary();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SUMMARY TABLE
+// ══════════════════════════════════════════════════════════════════════
+function refreshSummary() {
+  const tbody = document.getElementById('summary-body');
+  const tfoot = document.getElementById('summary-foot');
+  tbody.innerHTML = '';
+  tfoot.innerHTML = '';
+
+  let grandTotal = 0;
+  let hasRows    = false;
+
+  rooms.forEach(room => {
+    room.rows.forEach(row => {
+      const rowUnit2 = row.unit || 'm²';
+      const total = (row.qty ?? 0) * row.price;
+      grandTotal += total;
+      hasRows = true;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escHtml(row.service)}</td>
+        <td>${escHtml(room.name)}</td>
+        <td class="text-right">${fmt(row.qty ?? 0)}</td>
+        <td>${escHtml(rowUnit2)}</td>
+        <td class="text-right">PLN ${fmt(row.price)}</td>
+        <td class="text-right"><strong>PLN ${fmt(total)}</strong></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+
+  if (!hasRows) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8;">Dodaj pomieszczenia i usługi powyżej, aby zobaczyć podsumowanie.</td></tr>';
+  }
+
+  tfoot.innerHTML = `
+    <tr class="total-row">
+      <td colspan="5" class="text-right">SUMA KOŃCOWA</td>
+      <td class="text-right">PLN ${fmt(grandTotal)}</td>
+    </tr>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  PDF GENERATION
+// ══════════════════════════════════════════════════════════════════════
+function generatePDF() {
+  const clientName = (document.getElementById('client-name')?.value || '').trim();
+  const today = new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  // ── Build table body ────────────────────────────────────────────
+  const tableBody = [];
+  let grandTotal = 0;
+
+  rooms.forEach(room => {
+    room.rows.forEach(row => {
+      const unit  = row.unit || 'm²';
+      const total = (row.qty ?? 0) * row.price;
+      grandTotal += total;
+      tableBody.push([
+        { text: row.service },
+        { text: room.name },
+        { text: fmt(row.qty ?? 0), alignment: 'right' },
+        { text: unit },
+        { text: 'PLN ' + fmt(row.price), alignment: 'right' },
+        { text: 'PLN ' + fmt(total), alignment: 'right', bold: true },
+      ]);
+    });
+  });
+
+  if (tableBody.length === 0) {
+    alert('Proszę dodać przynajmniej jeden wiersz usługi przed wygenerowaniem PDF.');
+    return;
+  }
+
+  const DARK = '#0f3460';
+
+  const docDef = {
+    pageSize: 'A4',
+    pageMargins: [28, 28, 28, 40],
+    defaultStyle: { font: 'Roboto', fontSize: 9 },
+
+    content: [
+      // ── Header banner
+      {
+        canvas: [{ type: 'rect', x: 0, y: 0, w: 539, h: 52, color: DARK, r: 4 }],
+        margin: [0, 0, 0, 0],
+      },
+      {
+        text: 'Szacowana wycena kosztów usługi budowlanej',
+        fontSize: 16, bold: true, color: '#ffffff',
+        margin: [6, -46, 0, 2],
+      },
+      {
+        columns: [
+          { text: clientName ? 'Klient: ' + clientName : '', fontSize: 10, color: '#aaccee', bold: true },
+          { text: 'Data: ' + today, fontSize: 10, color: '#aaccee', alignment: 'right' },
+        ],
+        margin: [6, 0, 6, 20],
+      },
+
+      // ── Main table
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 80, 50, 50, 70, 90],
+          body: [
+            [
+              { text: 'Usługa',        style: 'th' },
+              { text: 'Pomieszczenie', style: 'th' },
+              { text: 'Ilość',   style: 'th', alignment: 'right' },
+              { text: 'Jednostka',    style: 'th' },
+              { text: 'Cena / jed.',  style: 'th', alignment: 'right' },
+              { text: 'Łącznie', style: 'th', alignment: 'right' },
+            ],
+            ...tableBody,
+            [
+              { text: '', colSpan: 4, border: [false, true, false, false], fillColor: '#f1f5f9' },
+              {}, {}, {},
+              { text: 'SUMA KOŃCOWA', bold: true, fontSize: 10, color: DARK,
+                alignment: 'right', border: [false, true, false, false], fillColor: '#f1f5f9' },
+              { text: 'PLN ' + fmt(grandTotal), bold: true, fontSize: 10, color: DARK,
+                alignment: 'right', border: [false, true, false, false], fillColor: '#f1f5f9' },
+            ],
+          ],
+        },
+        layout: {
+          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0 : 0.5,
+          vLineWidth: () => 0,
+          hLineColor: () => '#e2e8f0',
+          fillColor: (i) => {
+            if (i === 0) return DARK;
+            return i % 2 === 0 ? '#f8fafc' : null;
+          },
+        },
+      },
+
+      // ── Disclaimer
+      {
+        text: 'Niniejsza wycena jest przygotowana wyłącznie w celach informacyjnych. Ceny mogą się różnić w zależności od ostatecznego zakresu prac.',
+        fontSize: 8, color: '#94a3b8', margin: [0, 20, 0, 0],
+      },
+    ],
+
+    styles: {
+      th: { bold: true, color: '#ffffff', fontSize: 9 },
+    },
+  };
+
+  const safeName = clientName
+    ? clientName.replace(/[^a-zA-Z0-9À-ɏs-]/g, '').trim().replace(/s+/g, '-')
+    : 'Klient';
+  pdfMake.createPdf(docDef).download('Estymacja-' + safeName + '-' + Date.now() + '.pdf');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════════════════════════════
+function fmt(n) {
+  return Number(n).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  COLLAPSE / EXPAND
+// ══════════════════════════════════════════════════════════════════════
+function toggleCard(bodyId) {
+  const body   = document.getElementById(bodyId);
+  const header = body.previousElementSibling;
+  const isCollapsed = body.classList.toggle('collapsed');
+  header.classList.toggle('collapsed', isCollapsed);
+}
+
+function toggleRoom(roomId, event) {
+  const collapse = document.getElementById('room-collapse-' + roomId);
+  const header   = collapse.previousElementSibling;
+  const isCollapsed = collapse.classList.toggle('collapsed');
+  header.classList.toggle('collapsed', isCollapsed);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  LOCAL STORAGE — PERSIST & RESTORE
+// ══════════════════════════════════════════════════════════════════════
+const LS_CATALOG = 'kabu_catalog';
+const LS_ROOMS   = 'kabu_rooms';
+const LS_SEQS    = 'kabu_seqs';
+const LS_CLIENT  = 'kabu_client';
+
+function saveClientName(val) {
+  localStorage.setItem(LS_CLIENT, val);
+}
+
+function saveCatalog() {
+  localStorage.setItem(LS_CATALOG, JSON.stringify(services));
+  showIndicator('catalog-save-indicator', 'Zapisano ✓', 'saved');
+}
+
+function saveRooms() {
+  localStorage.setItem(LS_ROOMS, JSON.stringify(rooms));
+  localStorage.setItem(LS_SEQS, JSON.stringify({ roomIdSeq, rowIdSeq }));
+  showIndicator('rooms-save-indicator', 'Zapisano ✓', 'saved');
+}
+
+function clearCatalog() {
+  if (!confirm('Przywrócić domyślny katalog usług? Zapisane dane zostaną usunięte.')) return;
+  localStorage.removeItem(LS_CATALOG);
+  services = JSON.parse(JSON.stringify(DEFAULT_SERVICES));
+  renderCatalog();
+  syncServiceSelects();
+  showIndicator('catalog-save-indicator', 'Zresetowano', 'unsaved');
+}
+
+function clearRooms() {
+  if (!confirm('Usunąć wszystkie pomieszczenia? Tego nie można cofnąć.')) return;
+  localStorage.removeItem(LS_ROOMS);
+  localStorage.removeItem(LS_SEQS);
+  rooms = []; roomIdSeq = 0; rowIdSeq = 0;
+  renderRooms();
+  refreshSummary();
+  showIndicator('rooms-save-indicator', 'Zresetowano', 'unsaved');
+}
+
+function showIndicator(id, msg, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'save-indicator ' + cls;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; el.className = 'save-indicator'; }, 3000);
+}
+
+function loadFromStorage() {
+  // Client name
+  const savedClient = localStorage.getItem(LS_CLIENT);
+  if (savedClient !== null) {
+    const el = document.getElementById('client-name');
+    if (el) el.value = savedClient;
+  }
+
+  // Catalog
+  const savedCatalog = localStorage.getItem(LS_CATALOG);
+  if (savedCatalog) {
+    try {
+      services = JSON.parse(savedCatalog);
+      showIndicator('catalog-save-indicator', 'Wczytano z pamięci', 'saved');
+    } catch(e) { /* ignore corrupt data */ }
+  }
+
+  // Rooms
+  const savedRooms = localStorage.getItem(LS_ROOMS);
+  const savedSeqs  = localStorage.getItem(LS_SEQS);
+  if (savedRooms) {
+    try {
+      rooms = JSON.parse(savedRooms);
+      if (savedSeqs) {
+        const s = JSON.parse(savedSeqs);
+        roomIdSeq = s.roomIdSeq || 0;
+        rowIdSeq  = s.rowIdSeq  || 0;
+      }
+      showIndicator('rooms-save-indicator', 'Wczytano z pamięci', 'saved');
+    } catch(e) { /* ignore corrupt data */ }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════════════
+loadFromStorage();
+renderCatalog();
+renderRooms();
+refreshSummary();
+</script>
+</body>
+</html>
