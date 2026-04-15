@@ -853,7 +853,13 @@ function generatePDF() {
   const safeName = clientName
     ? clientName.replace(/[^a-zA-Z0-9À-ɏs-]/g, '').trim().replace(/s+/g, '-')
     : 'Klient';
-  pdfMake.createPdf(docDef).download('Estymacja-' + safeName + '-' + Date.now() + '.pdf');
+  const pdf = pdfMake.createPdf(docDef);
+  // iOS Safari blocks programmatic downloads — open in new tab instead
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    pdf.open();
+  } else {
+    pdf.download('Estymacja-' + safeName + '-' + Date.now() + '.pdf');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════
